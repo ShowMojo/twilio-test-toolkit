@@ -13,21 +13,21 @@ Gem::Specification.new do |s|
   s.summary     = "Better integration tests for apps that use Twilio"
   s.description = "Better integration tests for apps that use Twilio"
   s.licenses = ["MIT"]
-  
+
   s.files = Dir["{app,config,db,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.md"]
   s.test_files = Dir["spec/**/*"]
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.require_paths = ["lib"]
-  
+
   s.add_dependency 'capybara'
   s.add_dependency 'uuidtools'
-  
+
   s.add_development_dependency "rails", "~> 3.2.12"
-  s.add_development_dependency "sqlite3"  
-  s.add_development_dependency "sqlite3-ruby"  
-  s.add_development_dependency "rspec"  
-  s.add_development_dependency "rspec-rails" 
+  s.add_development_dependency "sqlite3"
+  s.add_development_dependency "sqlite3-ruby"
+  s.add_development_dependency "rspec"
+  s.add_development_dependency "rspec-rails"
   s.add_development_dependency "jquery-rails"
 end
 

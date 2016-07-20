@@ -226,8 +226,13 @@ module TwilioTestToolkit
           :CallStatus => options.fetch(:call_status, "in-progress")
         )
 
-        # All Twilio responses must be a success.
-        raise "Bad response: #{@response.status}" unless @response.status == 200
+        # All Twilio responses must be within the success range
+        raise "Bad response: #{@response.status}" unless @response.status.to_s =~ /^[23]/
+
+        if @response.status == 302
+          request_for_twiml! @response.headers['Location'], options
+          return
+        end
 
         # Load the xml
         data = @response.body
