@@ -20,6 +20,7 @@ module TwilioTestToolkit
     # Stuff for redirects
     def has_redirect_to?(url)
       el = get_redirect_node
+
       return false if el.nil?
       return normalize_redirect_path(el.text) == normalize_redirect_path(url)
     end
@@ -33,8 +34,8 @@ module TwilioTestToolkit
 
     def follow_redirect!(options = {})
       el = get_redirect_node
-      raise "No redirect" if el.nil?
 
+      raise "No redirect" if el.nil?
       request_for_twiml!(normalize_redirect_path(el.text), { :method => el[:method] }.merge(options))
     end
 
@@ -62,10 +63,16 @@ module TwilioTestToolkit
       raise "Not a gather" unless gather?
 
       # Fetch the path and then post
-      path = gather_action
+      if gather_action
+        path = gather_action
+      else
+        path = root_call.response_xml.at_xpath("Response/Redirect").text
+      end
 
       # Update the root call
-      root_call.request_for_twiml!(path, :digits => digits, :method => gather_method, :finish_on_key => gather_finish_on_key)
+      if path
+        root_call.request_for_twiml!(path, :digits => digits, :method => gather_method, :finish_on_key => gather_finish_on_key)
+      end
     end
 
     # Make this easier to support TwiML elements...
@@ -202,7 +209,6 @@ module TwilioTestToolkit
 
       def normalize_redirect_path(path)
         p = path
-
         # Strip off ".xml" off of the end of any path
         p = path[0...path.length - ".xml".length] if path.downcase.match(/\.xml$/)
         return p
@@ -215,17 +221,16 @@ module TwilioTestToolkit
         @current_path = normalize_redirect_path(path)
 
         # Post the query
+        query = {:format => :xml,
+                    :CallSid => @root_call.sid,
+                    :From => @root_call.from_number,
+                    :Digits => formatted_digits(options[:digits].to_s, :finish_on_key => options[:finish_on_key]),
+                    :To => @root_call.to_number,
+                    :AnsweredBy => (options[:is_machine] ? "machine" : "human"),
+                    :CallStatus => options.fetch(:call_status, "in-progress")
+                }
         rack_test_session_wrapper = Capybara.current_session.driver
-        @response = rack_test_session_wrapper.send(options[:method] || :post, @current_path,
-          :format => :xml,
-          :CallSid => @root_call.sid,
-          :From => @root_call.from_number,
-          :Digits => formatted_digits(options[:digits].to_s, :finish_on_key => options[:finish_on_key]),
-          :To => @root_call.to_number,
-          :AnsweredBy => (options[:is_machine] ? "machine" : "human"),
-          :CallStatus => options.fetch(:call_status, "in-progress")
-        )
-
+        @response = rack_test_session_wrapper.send(options[:method].downcase.to_sym || :post, @current_path, query)
         # All Twilio responses must be within the success range
         raise "Bad response: #{@response.status}" unless @response.status.to_s =~ /^[23]/
 
